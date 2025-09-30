@@ -1,19 +1,17 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true, // 支持 Cookie 认证
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  timeout: 10000,
 });
 
-// 请求拦截器
+// 请求拦截器 - 添加token到请求头
 apiClient.interceptors.request.use(
   (config) => {
-    // 可以在这里添加 token 到 header
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -21,21 +19,16 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 响应拦截器
+// 响应拦截器 - 处理401错误
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // 处理认证错误
     if (error.response?.status === 401) {
-      // 可以在这里处理登录跳转
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
-      }
+      localStorage.removeItem('access_token');
+      window.location.href = '/auth/login';
     }
     return Promise.reject(error);
   }
 );
 
-export default apiClient;
+export { apiClient };

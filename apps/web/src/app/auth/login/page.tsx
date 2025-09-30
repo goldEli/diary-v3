@@ -25,8 +25,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await apiClient.post('/auth/login', formData);
-      router.push('/diaries');
+      const response = await apiClient.post('/auth/login', formData);
+      
+      if (response.data.accessToken) {
+        localStorage.setItem('access_token', response.data.accessToken);
+        router.push('/diaries');
+      }
     } catch (error: any) {
       setError(error.response?.data?.message || '登录失败，请重试');
     } finally {

@@ -1,6 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -20,19 +19,12 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'Login successfully' })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginDto) {
     const user = await this.authService.validateUser(dto.email, dto.password);
     if (!user) {
       return { code: 401, message: 'Invalid credentials' };
     }
     const { accessToken } = await this.authService.login(user.id, user.email);
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
     return { accessToken };
   }
 
@@ -45,10 +37,8 @@ export class AuthController {
   }
 
   @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'Logout successfully' })
-  async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('access_token');
-    return { message: 'ok' };
+  @UseGuards(JwtAuthGuard)
+  async logout() {
+    return { message: '登出成功' };
   }
 }

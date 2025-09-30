@@ -17,9 +17,12 @@ export function useAuth() {
   const logout = async () => {
     try {
       await apiClient.post('/auth/logout');
-      mutate(undefined, false);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('access_token');
+      mutate(undefined, false);
+      window.location.href = '/auth/login';
     }
   };
 
