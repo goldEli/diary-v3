@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useAuth } from '@/hooks/useAuth';
 import { useDiary, updateDiary } from '@/hooks/useDiaries';
 import { UpdateDiaryData } from '@/types';
@@ -22,7 +23,7 @@ export default function EditDiaryPage() {
   const { diary, isLoading: diaryLoading } = useDiary(diaryId);
   
   const [content, setContent] = useState('');
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,7 +31,7 @@ export default function EditDiaryPage() {
   useEffect(() => {
     if (diary) {
       setContent(diary.content);
-      setSelectedDate(diary.journalDate);
+      setSelectedDate(parseISO(diary.journalDate));
     }
   }, [diary]);
 
@@ -38,8 +39,10 @@ export default function EditDiaryPage() {
     setContent(e.target.value);
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +59,7 @@ export default function EditDiaryPage() {
     try {
       const diaryData: UpdateDiaryData = {
         content: content.trim(),
-        journalDate: selectedDate,
+        journalDate: format(selectedDate, 'yyyy-MM-dd'),
       };
 
       await updateDiary(diaryId, diaryData);
@@ -128,12 +131,10 @@ export default function EditDiaryPage() {
                 {/* 日期选择 */}
                 <div className="space-y-2">
                   <Label htmlFor="date">日期 *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    required
+                  <DatePicker
+                    date={selectedDate}
+                    onDateChange={handleDateChange}
+                    placeholder="选择日期"
                   />
                 </div>
 

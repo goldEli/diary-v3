@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useAuth } from '@/hooks/useAuth';
 import { createDiary } from '@/hooks/useDiaries';
 import { CreateDiaryData } from '@/types';
@@ -18,7 +18,7 @@ export default function NewDiaryPage() {
   const router = useRouter();
   
   const [content, setContent] = useState('');
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,7 +36,7 @@ export default function NewDiaryPage() {
     try {
       const diaryData: CreateDiaryData = {
         content: content.trim(),
-        journalDate: selectedDate,
+        journalDate: format(selectedDate, 'yyyy-MM-dd'),
       };
 
       await createDiary(diaryData);
@@ -52,8 +52,10 @@ export default function NewDiaryPage() {
     setContent(e.target.value);
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+    }
   };
 
   if (authLoading) {
@@ -112,12 +114,10 @@ export default function NewDiaryPage() {
                 {/* 日期选择 */}
                 <div className="space-y-2">
                   <Label htmlFor="date">日期 *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    required
+                  <DatePicker
+                    date={selectedDate}
+                    onDateChange={handleDateChange}
+                    placeholder="选择日期"
                   />
                 </div>
 
