@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { useDiaries } from '@/hooks/useDiaries';
 import { useAuth } from '@/hooks/useAuth';
 import { QueryDiaryParams } from '@/types';
 import { deleteDiary } from '@/hooks/useDiaries';
+import { apiClient } from '@/lib/api';
 
 export default function DiariesPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -17,6 +18,7 @@ export default function DiariesPage() {
     limit: 10,
   });
   const [keyword, setKeyword] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { diaries, total, page, totalPages, isLoading, mutate } = useDiaries(queryParams);
 
@@ -31,6 +33,59 @@ export default function DiariesPage() {
       mutate();
     } catch (error) {
       alert('删除失败，请重试');
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const response = await apiClient.get('/diaries/export/csv', {
+        responseType: 'blob',
+      });
+      
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'diaries.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('导出失败，请重试');
+    }
+  };
+
+  const handleImportCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await apiClient.post('/diaries/import/csv', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const { imported, errors } = response.data;
+      let message = `成功导入 ${imported} 条日记`;
+      if (errors.length > 0) {
+        message += `\n\n错误信息：\n${errors.join('\n')}`;
+      }
+      alert(message);
+      
+      // 重新获取数据
+      mutate();
+    } catch (error) {
+      alert('导入失败，请重试');
+    }
+
+    // 清空文件输入
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -88,9 +143,27 @@ export default function DiariesPage() {
               欢迎回来，{user.email}
             </p>
           </div>
-          <Button asChild>
-            <Link href="/diaries/new">写新日记</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportCsv}>
+              导出CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => fileInputRef.current?.click()}
+            >
+              导入CSV
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImportCsv}
+              style={{ display: 'none' }}
+            />
+            <Button asChild>
+              <Link href="/diaries/new">写新日记</Link>
+            </Button>
+          </div>
         </div>
 
         {/* 搜索栏 */}

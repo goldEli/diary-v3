@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as csvWriter from 'csv-writer';
+import csvParser from 'csv-parser';
+import { Readable } from 'stream';
 import { Diary } from '../entities/diary.entity';
 
 interface CreateDiaryInput {
@@ -104,5 +107,88 @@ export class DiariesService {
     if (!diary) throw new NotFoundException('Diary not found');
     await this.diaryRepo.remove(diary);
     return { id };
+  }
+
+  async exportToCsv(userId: number): Promise<Buffer> {
+    const diaries = await this.diaryRepo.find({
+      where: { user: { id: userId } },
+      order: { journalDate: 'DESC' },
+    });
+
+    const records = diaries.map(diary => ({
+      id: diary.id,
+      title: diary.title,
+      content: diary.content,
+      journalDate: diary.journalDate,
+      mood: diary.mood || '',
+      createdAt: diary.createdAt.toISOString(),
+      updatedAt: diary.updatedAt.toISOString(),
+    }));
+
+    const writer = csvWriter.createObjectCsvStringifier({
+      header: [
+        { id: 'id', title: 'ID' },
+        { id: 'title', title: '标题' },
+        { id: 'content', title: '内容' },
+        { id: 'journalDate', title: '日记日期' },
+        { id: 'mood', title: '心情' },
+        { id: 'createdAt', title: '创建时间' },
+        { id: 'updatedAt', title: '更新时间' },
+      ],
+    });
+
+    const csvString = writer.getHeaderString() + writer.stringifyRecords(records);
+    return Buffer.from(csvString, 'utf8');
+  }
+
+  async importFromCsv(userId: number, csvBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
+    const csvString = csvBuffer.toString('utf8');
+    const results: any[] = [];
+    const errors: string[] = [];
+
+    return new Promise((resolve, reject) => {
+      const stream = Readable.from([csvString]);
+      
+      stream
+        .pipe(csvParser())
+        .on('data', (data: any) => results.push(data))
+        .on('end', async () => {
+          let imported = 0;
+          
+          for (const row of results) {
+            try {
+              // 验证必需字段
+              if (!row['标题'] || !row['内容'] || !row['日记日期']) {
+                errors.push(`行 ${results.indexOf(row) + 2}: 缺少必需字段（标题、内容、日记日期）`);
+                continue;
+              }
+
+              // 检查日期格式
+              const journalDate = row['日记日期'];
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(journalDate)) {
+                errors.push(`行 ${results.indexOf(row) + 2}: 日期格式错误，应为 YYYY-MM-DD`);
+                continue;
+              }
+
+              // 创建日记
+              await this.create(userId, {
+                title: row['标题'],
+                content: row['内容'],
+                journalDate: journalDate,
+                mood: row['心情'] || null,
+              });
+              
+              imported++;
+            } catch (error: any) {
+              errors.push(`行 ${results.indexOf(row) + 2}: ${error.message}`);
+            }
+          }
+          
+          resolve({ imported, errors });
+        })
+        .on('error', (error: any) => {
+          reject(error);
+        });
+    });
   }
 }

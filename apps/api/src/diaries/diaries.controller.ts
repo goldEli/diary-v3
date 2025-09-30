@@ -1,5 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { DiariesService } from './diaries.service';
 import { CreateDiaryDto } from './dto/create-diary.dto';
 import { UpdateDiaryDto } from './dto/update-diary.dto';
@@ -57,5 +59,27 @@ export class DiariesController {
   ) {
     const userId = req.user.userId;
     return this.diariesService.remove(userId, id);
+  }
+
+  @Get('export/csv')
+  @ApiOkResponse({ description: 'Export all diaries as CSV' })
+  async exportCsv(@Req() req: any, @Res() res: Response) {
+    const userId = req.user.userId;
+    const csvBuffer = await this.diariesService.exportToCsv(userId);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="diaries.csv"');
+    res.send(csvBuffer);
+  }
+
+  @Post('import/csv')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOkResponse({ description: 'Import diaries from CSV' })
+  async importCsv(
+    @Req() req: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const userId = req.user.userId;
+    return this.diariesService.importFromCsv(userId, file.buffer);
   }
 }
