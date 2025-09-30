@@ -13,14 +13,8 @@ export class Diary {
   @Column({ name: 'journal_date', type: 'date' })
   journalDate: string; // YYYY-MM-DD
 
-  @Column({ type: 'varchar', length: 255 })
-  title: string;
-
   @Column({ type: 'text' })
   content: string;
-
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  mood?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

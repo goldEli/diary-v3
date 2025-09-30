@@ -55,7 +55,6 @@ export default function EditDiaryPage() {
 
     try {
       const diaryData: UpdateDiaryData = {
-        title: `${format(new Date(selectedDate), 'yyyy年MM月dd日')}的日记`,
         content: content.trim(),
         journalDate: selectedDate,
       };

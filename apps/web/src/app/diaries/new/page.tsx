@@ -35,7 +35,6 @@ export default function NewDiaryPage() {
 
     try {
       const diaryData: CreateDiaryData = {
-        title: `${format(new Date(selectedDate), 'yyyy年MM月dd日')}的日记`,
         content: content.trim(),
         journalDate: selectedDate,
       };

@@ -200,10 +200,8 @@ export default function DiariesPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl">{diary.title}</CardTitle>
                       <CardDescription>
                         {new Date(diary.journalDate).toLocaleDateString('zh-CN')}
-                        {diary.mood && ` • ${diary.mood}`}
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">

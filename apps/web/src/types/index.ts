@@ -9,10 +9,8 @@ export interface User {
 // 日记类型
 export interface Diary {
   id: string;
-  title: string;
   content: string;
   journalDate: string;
-  mood?: string;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -20,18 +18,14 @@ export interface Diary {
 
 // 创建日记的数据类型
 export interface CreateDiaryData {
-  title: string;
   content: string;
   journalDate: string;
-  mood?: string;
 }
 
 // 更新日记的数据类型
 export interface UpdateDiaryData {
-  title?: string;
   content?: string;
   journalDate?: string;
-  mood?: string;
 }
 
 // 查询日记的参数类型

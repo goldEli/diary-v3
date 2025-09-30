@@ -7,17 +7,13 @@ import { Readable } from 'stream';
 import { Diary } from '../entities/diary.entity';
 
 interface CreateDiaryInput {
-  title: string;
   content: string;
   journalDate: string;
-  mood?: string | null;
 }
 
 interface UpdateDiaryInput {
-  title?: string;
   content?: string;
   journalDate?: string;
-  mood?: string | null;
 }
 
 interface QueryDiaryInput {
@@ -37,10 +33,8 @@ export class DiariesService {
 
   async create(userId: number, input: CreateDiaryInput) {
     const diary = this.diaryRepo.create({
-      title: input.title,
       content: input.content,
       journalDate: input.journalDate,
-      mood: input.mood ?? undefined,
       user: { id: userId } as any,
     } as Partial<Diary>);
     const saved = await this.diaryRepo.save(diary as Diary);
@@ -91,11 +85,9 @@ export class DiariesService {
       where: { id, user: { id: userId } },
     });
     if (!diary) throw new NotFoundException('Diary not found');
-    if (input.title !== undefined) diary.title = input.title;
     if (input.content !== undefined) diary.content = input.content;
     if (input.journalDate !== undefined)
       diary.journalDate = input.journalDate;
-    if (input.mood !== undefined) diary.mood = input.mood ?? undefined;
     await this.diaryRepo.save(diary);
     return { id: diary.id };
   }
@@ -117,10 +109,8 @@ export class DiariesService {
 
     const records = diaries.map(diary => ({
       id: diary.id,
-      title: diary.title,
       content: diary.content,
       journalDate: diary.journalDate,
-      mood: diary.mood || '',
       createdAt: diary.createdAt.toISOString(),
       updatedAt: diary.updatedAt.toISOString(),
     }));
@@ -128,10 +118,8 @@ export class DiariesService {
     const writer = csvWriter.createObjectCsvStringifier({
       header: [
         { id: 'id', title: 'ID' },
-        { id: 'title', title: '标题' },
         { id: 'content', title: '内容' },
         { id: 'journalDate', title: '日记日期' },
-        { id: 'mood', title: '心情' },
         { id: 'createdAt', title: '创建时间' },
         { id: 'updatedAt', title: '更新时间' },
       ],
@@ -158,8 +146,8 @@ export class DiariesService {
           for (const row of results) {
             try {
               // 验证必需字段
-              if (!row['标题'] || !row['内容'] || !row['日记日期']) {
-                errors.push(`行 ${results.indexOf(row) + 2}: 缺少必需字段（标题、内容、日记日期）`);
+              if (!row['内容'] || !row['日记日期']) {
+                errors.push(`行 ${results.indexOf(row) + 2}: 缺少必需字段（内容、日记日期）`);
                 continue;
               }
 
@@ -172,10 +160,8 @@ export class DiariesService {
 
               // 创建日记
               await this.create(userId, {
-                title: row['标题'],
                 content: row['内容'],
                 journalDate: journalDate,
-                mood: row['心情'] || null,
               });
               
               imported++;
